@@ -25,4 +25,13 @@ foreach ($key in @('ADMIN_INITIAL_PASSWORD','GRAFANA_ADMIN_PASSWORD','SESSION_SE
 New-Item -ItemType Directory -Path secrets -Force | Out-Null
 $exporter = "[client]`nuser=exporter`npassword=$($settings.EXPORTER_DB_PASSWORD)`nhost=mysql`nport=3306`n"
 [IO.File]::WriteAllText((Join-Path $PWD 'secrets/exporter.cnf'), $exporter, $utf8)
+# Restrict Windows secret files to the current account and SYSTEM.
+$owner = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+foreach ($secretFile in @('.env','secrets/exporter.cnf')) {
+    $acl = Get-Acl -LiteralPath $secretFile
+    $acl.SetAccessRuleProtection($true, $false)
+    $acl.SetAccessRule((New-Object Security.AccessControl.FileSystemAccessRule($owner, 'FullControl', 'Allow')))
+    $acl.SetAccessRule((New-Object Security.AccessControl.FileSystemAccessRule('NT AUTHORITY\SYSTEM', 'FullControl', 'Allow')))
+    Set-Acl -LiteralPath $secretFile -AclObject $acl
+}
 Write-Output 'Local secrets are ready. Existing .env was preserved. Start with docker compose up -d --build.'
