@@ -20,3 +20,7 @@ HTTP có security headers theo đề; cookie HttpOnly/SameSite=Lax, không Secur
 Repository chỉ chứa source, tests, cấu hình và tài liệu kỹ thuật. Báo cáo, ảnh minh chứng, backup và secrets lưu ngoài Git. Không commit `.env` hoặc output kiểm thử. Tài nguyên ảnh được website sử dụng trong app/public vẫn là source asset.
 
 Docker Compose: https://docs.docker.com/compose/intro/compose-application-model/
+
+## Monitoring
+Grafana http://localhost:3001, user admin, mật khẩu GRAFANA_ADMIN_PASSWORD. Dashboard được provision từ monitoring/grafana/dashboards/portfolio.json. Prometheus http://localhost:9090/targets có 4 jobs: prometheus, nginx, mysql, cadvisor. CPU là tốc độ CPU seconds nhân 100; RAM là working set bytes; network là bytes/second, không phải lưu lượng tích lũy. Container metrics lọc theo nhãn Compose project.
+cAdvisor cần privileged và mount host Linux của Docker Desktop; đây là ngoại lệ hardening và không có port public. Không coi target UP là đủ: phải xem nginx_up, mysql_up, container series và đồ thị thực.
