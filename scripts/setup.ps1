@@ -1,0 +1,28 @@
+$ErrorActionPreference = 'Stop'
+Set-Location (Split-Path $PSScriptRoot -Parent)
+function New-HexSecret {
+    $bytes = New-Object byte[] 32
+    $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+    return -join ($bytes | ForEach-Object { $_.ToString('x2') })
+}
+$utf8 = New-Object Text.UTF8Encoding($false)
+if (-not (Test-Path -LiteralPath '.env')) {
+    $lines = @('WEB_PORT=8080','PMA_PORT=8081','GRAFANA_PORT=3001','PROMETHEUS_PORT=9090','ADMIN_USERNAME=admin')
+    foreach ($key in @('MYSQL_ROOT_PASSWORD','APP_DB_PASSWORD','EXPORTER_DB_PASSWORD','ADMIN_INITIAL_PASSWORD','GRAFANA_ADMIN_PASSWORD','SESSION_SECRET')) { $lines += "$key=$(New-HexSecret)" }
+    [IO.File]::WriteAllLines((Join-Path $PWD '.env'), $lines, $utf8)
+}
+$settings = @{}
+foreach ($line in [IO.File]::ReadAllLines((Join-Path $PWD '.env'))) {
+    if ($line -match '^([A-Z_]+)=(.*)$') { $settings[$matches[1]] = $matches[2] }
+}
+foreach ($key in @('MYSQL_ROOT_PASSWORD','APP_DB_PASSWORD','EXPORTER_DB_PASSWORD')) {
+    if ($settings[$key] -notmatch '^[a-fA-F0-9]{32,}$') { throw "$key must contain at least 32 hex characters" }
+}
+foreach ($key in @('ADMIN_INITIAL_PASSWORD','GRAFANA_ADMIN_PASSWORD','SESSION_SECRET')) {
+    if ($settings[$key].Length -lt 32) { throw "$key must contain at least 32 characters" }
+}
+New-Item -ItemType Directory -Path secrets -Force | Out-Null
+$exporter = "[client]`nuser=exporter`npassword=$($settings.EXPORTER_DB_PASSWORD)`nhost=mysql`nport=3306`n"
+[IO.File]::WriteAllText((Join-Path $PWD 'secrets/exporter.cnf'), $exporter, $utf8)
+Write-Output 'Local secrets are ready. Existing .env was preserved. Start with docker compose up -d --build.'

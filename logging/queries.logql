@@ -1,0 +1,3 @@
+{job="nginx"}
+{job="nginx"} | json | status >= 400
+{job="app"} | json | event="login_failed"

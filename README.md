@@ -24,3 +24,8 @@ Docker Compose: https://docs.docker.com/compose/intro/compose-application-model/
 ## Monitoring
 Grafana http://localhost:3001, user admin, mật khẩu GRAFANA_ADMIN_PASSWORD. Dashboard được provision từ monitoring/grafana/dashboards/portfolio.json. Prometheus http://localhost:9090/targets có 4 jobs: prometheus, nginx, mysql, cadvisor. CPU là tốc độ CPU seconds nhân 100; RAM là working set bytes; network là bytes/second, không phải lưu lượng tích lũy. Container metrics lọc theo nhãn Compose project.
 cAdvisor cần privileged và mount host Linux của Docker Desktop; đây là ngoại lệ hardening và không có port public. Không coi target UP là đủ: phải xem nginx_up, mysql_up, container series và đồ thị thực.
+
+## Loki và LogQL
+Grafana → Explore → Loki. Ba truy vấn trong logging/queries.logql: access log, HTTP >=400 và login_failed. Tạo 404 bằng đường dẫn không tồn tại; tạo login_failed bằng lần đăng nhập sai có CSRF token hợp lệ. Promtail đọc volume log :ro, lưu positions; Loki lưu TSDB với retention 7 ngày, chỉ nằm trong mạng monitoring và không publish cổng host. auth_enabled=false chỉ phù hợp mạng demo nội bộ.
+Promtail đã EOL ngày 02/03/2026, được giữ do đề bắt buộc. Khi triển khai thực tế cần chuyển client còn hỗ trợ và cập nhật image theo kiểm tra bảo mật. Xem https://grafana.com/docs/loki/latest/send-data/promtail/.
+Promtail chạy UID 0 để ghi volume positions mới; đã drop ALL capabilities, root filesystem read-only và chỉ mount log nguồn :ro. Không có quyền Docker socket.

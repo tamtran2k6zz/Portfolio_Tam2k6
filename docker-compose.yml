@@ -111,6 +111,7 @@ services:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD}
       GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
     ports: ["127.0.0.1:${GRAFANA_PORT:-3001}:3000"]
@@ -161,6 +162,38 @@ services:
     mem_limit: 192m
     restart: unless-stopped
 
+  loki:
+    image: grafana/loki:3.5.7
+    command: [-config.file=/etc/loki/config.yml]
+    user: "10001:10001"
+    volumes:
+      - ./logging/loki.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    networks: [monitoring]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    restart: unless-stopped
+  promtail:
+    image: grafana/promtail:3.5.7
+    command: [-config.file=/etc/promtail/config.yml]
+    user: "0:0"
+    volumes:
+      - ./logging/promtail.yml:/etc/promtail/config.yml:ro
+      - app_logs:/logs/app:ro
+      - nginx_logs:/logs/nginx:ro
+      - promtail_positions:/positions
+    networks: [monitoring]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on: [loki, nginx]
+    mem_limit: 128m
+    restart: unless-stopped
+
 networks:
   web:
   database: {internal: true}
@@ -172,3 +205,5 @@ volumes:
   nginx_logs:
   prometheus_data:
   grafana_data:
+  loki_data:
+  promtail_positions:

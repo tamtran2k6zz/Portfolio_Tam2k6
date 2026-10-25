@@ -1,0 +1,43 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+positions:
+  filename: /positions/positions.yml
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+scrape_configs:
+  - job_name: nginx
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: nginx
+          service: portfolio
+          __path__: /logs/nginx/access.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+  - job_name: application
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: app
+          service: portfolio
+          __path__: /logs/app/app.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+  - job_name: nginx-error
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: nginx-error
+          service: portfolio
+          __path__: /logs/nginx/error.log
