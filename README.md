@@ -5,7 +5,7 @@ Express/EJS + MySQL, giữ giao diện cá nhân có sẵn. Windows + Docker Des
 
 ## Khởi động
 1. Docker Desktop phải chạy, kiểm tra `docker version` và `docker compose version`.
-2. Copy `.env.example` thành `.env`, điền mật khẩu mạnh. Mật khẩu DB dùng ít nhất 32 ký tự hex (0-9, a-f). Không ghi đè `.env` đã có.
+2. Chạy `./scripts/setup.ps1` để tạo .env và secrets/exporter.cnf. Script giữ .env đã có; nếu tự điền, tham khảo .env.example và dùng DB passwords ít nhất 32 ký tự hex. Không ghi đè secrets cũ tùy tiện.
 3. Chạy `docker compose config --quiet`, rồi `docker compose up -d --build`.
 4. Xem `docker compose ps` và `docker compose logs --tail 40 app`.
 
@@ -29,3 +29,6 @@ cAdvisor cần privileged và mount host Linux của Docker Desktop; đây là n
 Grafana → Explore → Loki. Ba truy vấn trong logging/queries.logql: access log, HTTP >=400 và login_failed. Tạo 404 bằng đường dẫn không tồn tại; tạo login_failed bằng lần đăng nhập sai có CSRF token hợp lệ. Promtail đọc volume log :ro, lưu positions; Loki lưu TSDB với retention 7 ngày, chỉ nằm trong mạng monitoring và không publish cổng host. auth_enabled=false chỉ phù hợp mạng demo nội bộ.
 Promtail đã EOL ngày 02/03/2026, được giữ do đề bắt buộc. Khi triển khai thực tế cần chuyển client còn hỗ trợ và cập nhật image theo kiểm tra bảo mật. Xem https://grafana.com/docs/loki/latest/send-data/promtail/.
 Promtail chạy UID 0 để ghi volume positions mới; đã drop ALL capabilities, root filesystem read-only và chỉ mount log nguồn :ro. Không có quyền Docker socket.
+
+## Thực hành và tái lập
+Xem DEMO.md cho đổi port, headers, scrape interval, LogQL, rebuild app và backup/restore. Chỉ có một docker-compose.yml, không cần override/profile hoặc tham số -f. Scripts kiểm chứng/backup tùy chọn dùng Python 3 với standard library; chạy stack và demo thường chỉ cần PowerShell cùng Docker Desktop.

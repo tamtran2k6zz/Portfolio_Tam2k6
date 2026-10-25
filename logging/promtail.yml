@@ -12,7 +12,7 @@ scrape_configs:
         labels:
           job: nginx
           service: portfolio
-          __path__: /logs/nginx/access.log
+          __path__: /logs/nginx/portfolio-access.log
     pipeline_stages:
       - json:
           expressions:
@@ -40,4 +40,4 @@ scrape_configs:
         labels:
           job: nginx-error
           service: portfolio
-          __path__: /logs/nginx/error.log
+          __path__: /logs/nginx/portfolio-error.log

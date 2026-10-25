@@ -1,7 +1,8 @@
 """Back up the current DB, optionally verify restore in a NEW separate DB."""
 from pathlib import Path
 from datetime import datetime, timezone
-import argparse, subprocess, json
+import argparse, subprocess, json, sys
+if hasattr(sys.stdout, "reconfigure"): sys.stdout.reconfigure(encoding="utf-8")
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
 parser.add_argument('--output', required=True, help='Backup folder outside the repository')

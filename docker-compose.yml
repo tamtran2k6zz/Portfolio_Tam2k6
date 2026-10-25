@@ -21,6 +21,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./db/init:/docker-entrypoint-initdb.d:ro
+      - ./db/schema.sql:/opt/portfolio/schema.sql:ro
     networks: [database]
     healthcheck:
       test: [CMD-SHELL, 'MYSQL_PWD="$$APP_DB_PASSWORD" mysql --protocol=TCP -h127.0.0.1 -uportfolio_app -e "SELECT 1 FROM portfolio.skills LIMIT 1"']
