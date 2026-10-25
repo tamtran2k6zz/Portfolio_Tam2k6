@@ -1,0 +1,9 @@
+app/node_modules/
+.env
+secrets/
+backups/
+.work/
+docs/evidence/
+docs/report/
+__pycache__/
+*.log

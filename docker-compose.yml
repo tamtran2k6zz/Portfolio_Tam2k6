@@ -1,0 +1,101 @@
+name: portfolio-tam2k6
+services:
+  init-logs:
+    image: busybox:1.37
+    user: "0:0"
+    command: [sh, -c, "chown 1000:1000 /app-logs && chown 101:101 /nginx-logs && chmod 755 /app-logs /nginx-logs"]
+    volumes: [app_logs:/app-logs, nginx_logs:/nginx-logs]
+    network_mode: none
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER, DAC_OVERRIDE]
+    security_opt: [no-new-privileges:true]
+    restart: "no"
+  mysql:
+    image: mysql:8.4.4
+    user: "999:999"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD}
+      EXPORTER_DB_PASSWORD: ${EXPORTER_DB_PASSWORD:?Set EXPORTER_DB_PASSWORD}
+    command: [--performance-schema=OFF, --innodb-buffer-pool-size=128M, --max-connections=60]
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$$APP_DB_PASSWORD" mysql --protocol=TCP -h127.0.0.1 -uportfolio_app -e "SELECT 1 FROM portfolio.skills LIMIT 1"']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: 640m
+    restart: unless-stopped
+  app:
+    build: ./app
+    environment:
+      DB_HOST: mysql
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Set APP_DB_PASSWORD}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?Set ADMIN_INITIAL_PASSWORD}
+      COOKIE_SECURE: "false"
+      LOG_DIR: /app/logs
+      NODE_ENV: production
+    volumes: [app_logs:/app/logs]
+    networks: [web, database]
+    depends_on:
+      mysql: {condition: service_healthy}
+      init-logs: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 192m
+    restart: unless-stopped
+  nginx:
+    image: nginxinc/nginx-unprivileged:1.28-alpine
+    user: "101:101"
+    ports: ["127.0.0.1:${WEB_PORT:-8080}:8080"]
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_logs:/var/log/nginx
+    networks: [web]
+    depends_on:
+      app: {condition: service_healthy}
+      init-logs: {condition: service_completed_successfully}
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8080/health]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    mem_limit: 64m
+    restart: unless-stopped
+  phpmyadmin:
+    image: phpmyadmin:5.2.3-apache
+    environment: {PMA_HOST: mysql, PMA_ARBITRARY: "0", UPLOAD_LIMIT: 32M}
+    ports: ["127.0.0.1:${PMA_PORT:-8081}:80"]
+    networks: [management, database]
+    depends_on:
+      mysql: {condition: service_healthy}
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    restart: unless-stopped
+networks:
+  web:
+  database: {internal: true}
+  management:
+volumes:
+  mysql_data:
+  app_logs:
+  nginx_logs:
