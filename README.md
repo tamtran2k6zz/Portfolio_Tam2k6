@@ -32,3 +32,14 @@ Promtail chạy UID 0 để ghi volume positions mới; đã drop ALL capabiliti
 
 ## Thực hành và tái lập
 Xem DEMO.md cho đổi port, headers, scrape interval, LogQL, rebuild app và backup/restore. Chỉ có một docker-compose.yml, không cần override/profile hoặc tham số -f. Scripts kiểm chứng/backup tùy chọn dùng Python 3 với standard library; chạy stack và demo thường chỉ cần PowerShell cùng Docker Desktop.
+
+## Clone lại khi vẫn còn dữ liệu Docker
+Xóa thư mục source không xóa named volumes. Nếu volume portfolio-tam2k6_mysql_data còn tồn tại, phải khôi phục đúng .env cũ, không sinh mật khẩu mới. setup.ps1 sẽ dừng khi thiếu .env nhưng phát hiện volume cũ.
+
+```powershell
+Copy-Item '../Backup/portfolio-tam2k6.env' '.env'
+./scripts/setup.ps1
+docker compose up -d --build
+```
+File backup .env là dữ liệu bí mật local, không lấy từ Git và không đưa lên GitHub. Cất bản sao .env ngoài repository sau khi cấu hình thành công. MySQL chỉ áp dụng password khởi tạo khi volume mới; đổi .env không tự đổi password trong DB cũ.
+Nếu mất .env, ưu tiên khôi phục bản sao; nếu không còn đủ thông tin cần sao lưu và phục hồi quyền theo hướng dẫn MySQL, không xóa volume để bỏ lỗi healthcheck.
