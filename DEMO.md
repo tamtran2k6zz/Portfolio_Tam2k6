@@ -3,6 +3,7 @@
 ## Bắt đầu
 Mở Docker Desktop ở Linux containers. Mở PowerShell tại thư mục Project.
 Lần đầu: `./scripts/setup.ps1` (tạo .env và secrets/exporter.cnf; giữ .env đã có).
+(Windows : Copy-Item '..\Backup\portfolio-tam2k6.env' '.env' Copy dữ liệu cũ vào file .env mới)
 Chạy: `docker compose up -d --build`. Xem: `docker compose ps`.
 Website http://localhost:8080; phpMyAdmin http://localhost:8081; Grafana http://localhost:3001; Prometheus http://localhost:9090/targets.
 Thông tin đăng nhập trong .env, không chiếu mật khẩu khi demo.
